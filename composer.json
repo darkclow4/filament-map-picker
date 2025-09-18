@@ -1,30 +1,28 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "darkclow4/filament-map-picker",
+    "description": "Package for get lat lang using leaflet",
     "keywords": [
-        ":vendor_name",
+        "darkclow4",
         "laravel",
         "filamentphp",
-        ":package_slug"
+        "filament-map-picker"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/darkclow4/filament-map-picker",
     "support": {
-        "issues": "https://github.com/:vendor_slug/:package_slug/issues",
-        "source": "https://github.com/:vendor_slug/:package_slug"
+        "issues": "https://github.com/darkclow4/filament-map-picker/issues",
+        "source": "https://github.com/darkclow4/filament-map-picker"
     },
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "darkclow4",
+            "email": "irfan.140895@gmail.com",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.2",
         "filament/filament": "^4.0",
-        "filament/forms": "^4.0",
-        "filament/tables": "^4.0",
         "spatie/laravel-package-tools": "^1.15.0"
     },
     "require-dev": {
@@ -38,37 +36,33 @@
         "pestphp/pest-plugin-livewire": "^3.0",
         "phpstan/extension-installer": "^1.1",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "rector/rector": "^2.0",
-        "spatie/laravel-ray": "^1.26"
+        "phpstan/phpstan-phpunit": "^2.0"
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Darkclow4\\MapPicker\\": "src/",
+            "Darkclow4\\MapPicker\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/"
+            "Darkclow4\\MapPicker\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
         "analyse": "phpstan analyse",
         "lint": "pint",
-        "refactor": "rector",
         "test": "pest",
-        "test:lint": "pint --test",
-        "test:refactor": "rector --dry-run"
+        "test:lint": "pint --test"
     },
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Darkclow4\\MapPicker\\MapPickerServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "MapPicker": "Darkclow4\\MapPicker\\Facades\\MapPicker"
             }
         }
     },
