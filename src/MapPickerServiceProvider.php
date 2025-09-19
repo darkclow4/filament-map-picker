@@ -11,7 +11,7 @@ class MapPickerServiceProvider extends PackageServiceProvider
 {
     public static string $name = 'filament-map-picker';
 
-    public static string $viewNamespace = 'darkclow4-map-picker::';
+    public static string $viewNamespace = 'darkclow4-map-picker';
 
     public function configurePackage(Package $package): void
     {
@@ -28,8 +28,8 @@ class MapPickerServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        FilamentAsset::register([
-            Css::make('map-picker', __DIR__.'/../resources/dist/map-picker.css')->loadedOnRequest(),
-        ], 'darkclow4/filament-map-picker');
+        // FilamentAsset::register([
+        //     Css::make('map-picker', __DIR__.'/../resources/dist/map-picker.css')->loadedOnRequest(),
+        // ], 'darkclow4/filament-map-picker');
     }
 }
