@@ -40,8 +40,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Darkclow4\\MapPicker\\": "src/",
-            "Darkclow4\\MapPicker\\Database\\Factories\\": "database/factories/"
+            "Darkclow4\\MapPicker\\": "src/"
         }
     },
     "autoload-dev": {
@@ -60,10 +59,7 @@
         "laravel": {
             "providers": [
                 "Darkclow4\\MapPicker\\MapPickerServiceProvider"
-            ],
-            "aliases": {
-                "MapPicker": "Darkclow4\\MapPicker\\Facades\\MapPicker"
-            }
+            ]
         }
     },
     "config": {
