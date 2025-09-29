@@ -1,6 +1,11 @@
 {
     "private": true,
     "type": "module",
-    "scripts": [],
-    "devDependencies": []
+    "scripts": {
+        "dev": "node bin/build.js --dev",
+        "build": "node bin/build.js"
+    },
+    "devDependencies": {
+        "leaflet": "^1.9.4"
+    }
 }
