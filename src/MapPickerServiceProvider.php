@@ -2,7 +2,7 @@
 
 namespace Darkclow4\MapPicker;
 
-use Filament\Support\Assets\Css;
+use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Facades\FilamentAsset;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -28,8 +28,8 @@ class MapPickerServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        // FilamentAsset::register([
-        //     Css::make('map-picker', __DIR__.'/../resources/dist/map-picker.css')->loadedOnRequest(),
-        // ], 'darkclow4/filament-map-picker');
+        FilamentAsset::register([
+            AlpineComponent::make('map-picker', __DIR__.'/../dist/map-picker.js'),
+        ], 'darkclow4/filament-map-picker');
     }
 }
