@@ -3,7 +3,7 @@
     x-load
     x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('map-picker', 'darkclow4/filament-map-picker') }}"
     x-data="mapPickerFormComponent({
-                
+                config: {{ $getMapConfig() }},
             })"
     wire:ignore
     >
