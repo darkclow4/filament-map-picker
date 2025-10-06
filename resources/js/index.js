@@ -4,17 +4,29 @@ export default function mapPickerFormComponent({
     config
 }) {
     return {
+        map: null,
         init() {
+            const tileLayer = config.tileLayer;
+            const baseTileLayer = {};
             const mapElement = this.$refs.map;
 
-            this.map = L.map(mapElement).setView(
-                [-6.2, 106.8],
-                config.zoom
-            );
+            for (const tile in tileLayer) {
+                const cfg = tileLayer[tile];
+                const { label, url, ...options } = cfg;
+                baseTileLayer[label] = L.tileLayer(url, options);
+            }
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            }).addTo(this.map);
+            this.map = L.map(mapElement, {
+                center: config.center,
+                zoom: config.zoom,
+                maxZoom: config.maxZoom,
+                layers: [baseTileLayer[tileLayer[config.defaultTile].label]]
+            });
+
+            if (Object.keys(tileLayer).length > 1) {
+                L.control.layers(baseTileLayer).addTo(this.map);
+            }
+
         }
     }
 }
