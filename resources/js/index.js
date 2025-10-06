@@ -5,26 +5,28 @@ export default function mapPickerFormComponent({
 }) {
     return {
         map: null,
+        baseTileLayer: null,
         init() {
             const tileLayer = config.tileLayer;
-            const baseTileLayer = {};
             const mapElement = this.$refs.map;
+
+            this.baseTileLayer = {};
 
             for (const tile in tileLayer) {
                 const cfg = tileLayer[tile];
                 const { label, url, ...options } = cfg;
-                baseTileLayer[label] = L.tileLayer(url, options);
+                this.baseTileLayer[label] = L.tileLayer(url, options);
             }
 
             this.map = L.map(mapElement, {
                 center: config.center,
                 zoom: config.zoom,
                 maxZoom: config.maxZoom,
-                layers: [baseTileLayer[tileLayer[config.defaultTile].label]]
+                layers: [this.baseTileLayer[tileLayer[config.defaultTile].label]]
             });
 
             if (Object.keys(tileLayer).length > 1) {
-                L.control.layers(baseTileLayer).addTo(this.map);
+                L.control.layers(this.baseTileLayer).addTo(this.map);
             }
 
         }
