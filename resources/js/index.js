@@ -6,6 +6,7 @@ export default function mapPickerFormComponent({
     return {
         map: null,
         baseTileLayer: null,
+        marker: null,
         init() {
             const tileLayer = config.tileLayer;
             const mapElement = this.$refs.map;
@@ -29,6 +30,17 @@ export default function mapPickerFormComponent({
                 L.control.layers(this.baseTileLayer).addTo(this.map);
             }
 
+            this.$nextTick(() => {
+                setTimeout(() => this.map.invalidateSize(), 300);
+            });
+
+            this.map.on('click', (e) => {
+                if (this.marker) {
+                    this.marker.setLatLng(e.latlng);
+                } else {
+                    this.marker = L.marker(e.latlng).addTo(this.map);
+                }
+            });
         }
     }
 }
