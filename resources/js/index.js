@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import 'leaflet-draw';
 
 export default function mapPickerFormComponent({
     config
@@ -34,13 +35,36 @@ export default function mapPickerFormComponent({
                 setTimeout(() => this.map.invalidateSize(), 300);
             });
 
-            this.map.on('click', (e) => {
+            const markerLayer = L.layerGroup().addTo(this.map);
+
+            const onMapClick = (e) => {
                 if (this.marker) {
                     this.marker.setLatLng(e.latlng);
                 } else {
-                    this.marker = L.marker(e.latlng).addTo(this.map);
+                    this.marker = L.marker(e.latlng).addTo(markerLayer);
+                }
+            };
+
+            this.map.on('click', onMapClick);
+
+            const drawnItems = new L.FeatureGroup();
+            this.map.addLayer(drawnItems);
+
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: true
+                },
+                draw: {
+                    polygon: true,
+                    marker: false,
+                    polyline: false,
+                    rectangle: false,
+                    circle: false,
+                    circlemarker: false
                 }
             });
+            this.map.addControl(drawControl);
         }
     }
 }
