@@ -1,18 +1,21 @@
 # Filament Map Picker
 
-`filament-map-picker` is a custom field for Filament 5 that lets users pick map coordinates with an interactive Leaflet.js map.
+`filament-map-picker` is a custom field for Filament 5 that provides an interactive Leaflet.js map for selecting a point location and, optionally, drawing one or more map areas as GeoJSON.
 
-The field does not directly persist `latitude` and `longitude` columns. Instead, it keeps an internal coordinate state and lets developers map that state however they want through `afterStateUpdated()`.
+The package is designed to stay flexible. It does not force how you persist `latitude`, `longitude`, or area data. Instead, it keeps a predictable field state and lets you map the values however you want through `afterStateUpdated()` and `afterStateHydrated()`.
 
 ## Features
 
 - Built for Filament 5
-- Powered by Leaflet.js
+- Powered by locally bundled Leaflet.js and Leaflet Draw
 - Default OpenStreetMap tile layer
 - Custom tile support through `->tiles([...])`
-- `drag` mode and `click` mode
-- Optional place search powered by geocoding
-- Reactive Livewire state
+- `drag` mode and `click` mode for the point marker
+- Optional geocoding search UI
+- Optional polygon, rectangle, and circle drawing tools
+- Optional multi-shape GeoJSON collections
+- Combined point + area state in a single field
+- Reactive Livewire-friendly state updates
 - Alpine.js powered interaction
 - Leaflet layers control for switching tile layers
 
@@ -24,7 +27,7 @@ The field does not directly persist `latitude` and `longitude` columns. Instead,
 
 ## Installation
 
-If you are developing the package locally inside a Laravel project, add a path repository to the root `composer.json`:
+If you are developing the package locally inside a Laravel project, add a path repository entry to the root `composer.json`:
 
 ```json
 {
@@ -43,7 +46,7 @@ Then require the package:
 composer require darkclow4/filament-map-picker:@dev
 ```
 
-After installation, publish Filament assets:
+Publish Filament assets after installation or after asset changes:
 
 ```bash
 php artisan filament:assets
@@ -51,16 +54,16 @@ php artisan filament:assets
 
 ## Runtime vs Development Dependencies
 
-The published package does not need `node_modules` at runtime.
+The installed package does not need `node_modules` at runtime.
 
-- Laravel and Filament only use the committed files inside `dist/`
+- Laravel and Filament only use committed files inside `dist/`
 - `node_modules` is only needed when maintaining the package locally
-- This means consumers of the package do not need Node.js just to use the field
+- Consumers of the package do not need Node.js just to use the field
 
 In short:
 
 - runtime usage: no `node_modules` required
-- package maintenance: `node_modules` required only when rebuilding assets or updating bundled Leaflet
+- package maintenance: `node_modules` required only when rebuilding assets or updating bundled Leaflet assets
 
 ## Package Registration
 
@@ -72,7 +75,41 @@ Darkclow4\FilamentMapPicker\FilamentMapPickerServiceProvider::class
 
 In most applications, no manual provider registration is needed.
 
+## State Format
+
+### Point-only mode
+
+By default, the field stores point coordinates as:
+
+```php
+[
+    'lat' => -6.2,
+    'lng' => 106.816666,
+]
+```
+
+### Point + draw mode
+
+When draw mode is enabled, the field stores a combined state:
+
+```php
+[
+    'lat' => -6.2,
+    'lng' => 106.816666,
+    'geojson' => [
+        'type' => 'FeatureCollection',
+        'features' => [
+            // polygon / rectangle / circle features
+        ],
+    ],
+]
+```
+
+This makes it easy to keep a marker location and one or more service-area shapes in the same field while still saving them into separate database columns.
+
 ## Basic Usage
+
+### Point-only field
 
 ```php
 use Darkclow4\FilamentMapPicker\Forms\Components\MapPicker;
@@ -90,40 +127,68 @@ MapPicker::make('location')
     });
 ```
 
-## How the Field State Works
-
-The field stores its internal state as an array:
+### Point + area in a single field
 
 ```php
-[
-    'lat' => -6.2,
-    'lng' => 106.816666,
-]
-```
+use Darkclow4\FilamentMapPicker\Forms\Components\MapPicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
-This makes it easy to map the selected coordinates to separate form fields or database columns.
+MapPicker::make('location')
+    ->mode('drag')
+    ->defaultLocation(-6.2, 106.816666)
+    ->drawable()
+    ->drawTools(['polygon', 'rectangle', 'circle'])
+    ->multipleShapes()
+    ->fitDrawBounds(false)
+    ->height(480)
+    ->live()
+    ->afterStateHydrated(function (MapPicker $component, Get $get): void {
+        $component->state([
+            'lat' => is_numeric($get('latitude')) ? (float) $get('latitude') : -6.2,
+            'lng' => is_numeric($get('longitude')) ? (float) $get('longitude') : 106.816666,
+            'geojson' => is_array($get('area'))
+                ? $get('area')
+                : [
+                    'type' => 'FeatureCollection',
+                    'features' => [],
+                ],
+        ]);
+    })
+    ->afterStateUpdated(function (?array $state, Set $set): void {
+        $set('latitude', $state['lat'] ?? null);
+        $set('longitude', $state['lng'] ?? null);
+        $set('area', $state['geojson'] ?? [
+            'type' => 'FeatureCollection',
+            'features' => [],
+        ]);
+    });
+
+Hidden::make('area');
+```
 
 ## Selection Modes
 
-### Drag Mode
+### Drag mode
 
 ```php
 MapPicker::make('location')->mode('drag')
 ```
 
-- The user drags the map
-- The marker stays centered
-- Coordinates are taken from the map center
+- the user drags the map
+- the marker stays centered
+- coordinates are taken from the map center
 
-### Click Mode
+### Click mode
 
 ```php
 MapPicker::make('location')->mode('click')
 ```
 
-- The user clicks on the map
-- The marker moves to the clicked point
-- Coordinates are taken from that point
+- the user clicks on the map
+- the marker moves to the clicked point
+- coordinates are taken from that point
 
 ## Default Tile Layer
 
@@ -151,7 +216,7 @@ Built-in default tile definition:
 
 ## Custom Tile Layers
 
-You can provide your own tile layers with `->tiles([...])`. Those tiles are serialized to JSON and passed directly to Leaflet.
+You can provide your own tile layers with `->tiles([...])`. Those definitions are serialized to JSON and passed directly to Leaflet.
 
 ```php
 MapPicker::make('location')
@@ -161,7 +226,7 @@ MapPicker::make('location')
             'url' => 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
             'options' => [
                 'maxZoom' => 19,
-                'attribution' => 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+                'attribution' => 'Map data: &copy; OpenStreetMap contributors | Map style: &copy; OpenTopoMap',
             ],
         ],
     ])
@@ -170,10 +235,62 @@ MapPicker::make('location')
 
 Tile behavior:
 
-- If `->tiles()` is not called, only `osm` is available
-- If `->tile()` is not called, `osm` is selected by default
-- If the selected tile key is invalid, the field falls back to `osm`
-- If more than one base layer exists, Leaflet's built-in layers control is shown on the map
+- if `->tiles()` is not called, only `osm` is available
+- if `->tile()` is not called, `osm` is selected by default
+- if the selected tile key is invalid, the field falls back to `osm`
+- if more than one base layer exists, Leaflet's built-in layers control is shown on the map
+
+## Searchable Mode
+
+Enable geocoding search when you want users to jump quickly to a location:
+
+```php
+MapPicker::make('location')
+    ->searchable()
+    ->searchPlaceholder('Search for a place')
+    ->searchResultLimit(8)
+```
+
+Behavior:
+
+- users can search for a place or address
+- matching results appear in a dropdown list
+- selecting a result recenters the map and updates the field state
+- selected results are highlighted when reopened
+
+By default, search uses:
+
+```php
+https://nominatim.openstreetmap.org/search
+```
+
+You can override it:
+
+```php
+->searchProviderUrl('https://nominatim.openstreetmap.org/search')
+```
+
+## Drawing Shapes as GeoJSON
+
+Enable draw mode when you want the user to define areas while keeping a marker location in the same field state.
+
+```php
+MapPicker::make('location')
+    ->drawable()
+    ->drawTools(['polygon', 'rectangle', 'circle'])
+    ->multipleShapes()
+    ->fitDrawBounds(false)
+```
+
+Notes:
+
+- draw mode stores the field state as `['lat', 'lng', 'geojson']`
+- the marker location still works as normal
+- the drawn area is stored inside `geojson`
+- by default only one drawn shape is kept at a time
+- use `->multipleShapes()` if you want multiple polygons / rectangles / circles in the same `FeatureCollection`
+- editing or deleting shapes updates the field state automatically
+- use `afterStateUpdated()` / `afterStateHydrated()` to map `latitude`, `longitude`, and `geojson` into separate database columns
 
 ## API Reference
 
@@ -206,7 +323,7 @@ Expected tile format:
 
 ### `->mode('drag|click')`
 
-Defines the map interaction mode.
+Defines the point marker interaction mode.
 
 ```php
 ->mode('drag')
@@ -250,7 +367,7 @@ Sets the marker color used in both `drag` and `click` modes.
 
 ### `->searchable(bool $condition = true)`
 
-Enables a simple place search input above the map.
+Enables place search.
 
 ```php
 ->searchable()
@@ -274,128 +391,50 @@ Overrides the geocoding endpoint used by the search box.
 
 ### `->searchResultLimit(int $limit)`
 
-Controls how many geocoding results are shown in the selectable search list.
+Controls how many search results are shown in the dropdown.
 
 ```php
 ->searchResultLimit(8)
 ```
 
-## Example: Filament Form Integration
+### `->drawable(bool $condition = true)`
+
+Enables shape drawing tools and switches the field state into combined point + GeoJSON mode.
 
 ```php
-<?php
-
-namespace App\Filament\Resources\Organizations\Schemas;
-
-use Darkclow4\FilamentMapPicker\Forms\Components\MapPicker;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Schema;
-
-class OrganizationForm
-{
-    public static function configure(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                TextInput::make('name')
-                    ->required(),
-
-                MapPicker::make('location')
-                    ->columnSpanFull()
-                    ->tiles([
-                        'opentopo' => [
-                            'label' => 'Open Topo Map',
-                            'url' => 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-                            'options' => [
-                                'maxZoom' => 19,
-                                'attribution' => 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-                            ],
-                        ],
-                    ])
-                    ->tile('opentopo')
-                    ->mode('click')
-                    ->defaultLocation(-6.2, 106.816666)
-                    ->markerColor('#2563eb')
-                    ->searchable()
-                    ->searchPlaceholder('Search for a location')
-                    ->zoom(13)
-                    ->height(420)
-                    ->live()
-                    ->afterStateHydrated(function (MapPicker $component, Get $get): void {
-                        $latitude = $get('latitude');
-                        $longitude = $get('longitude');
-
-                        if (! is_numeric($latitude) || ! is_numeric($longitude)) {
-                            return;
-                        }
-
-                        $component->state([
-                            'lat' => (float) $latitude,
-                            'lng' => (float) $longitude,
-                        ]);
-                    })
-                    ->afterStateUpdated(function (?array $state, Set $set): void {
-                        $set('latitude', $state['lat'] ?? null);
-                        $set('longitude', $state['lng'] ?? null);
-                    }),
-
-                TextInput::make('latitude')
-                    ->numeric()
-                    ->live(debounce: 500)
-                    ->afterStateUpdated(function ($state, Get $get, Set $set): void {
-                        $longitude = $get('longitude');
-
-                        if (! is_numeric($state) || ! is_numeric($longitude)) {
-                            return;
-                        }
-
-                        $set('location', [
-                            'lat' => (float) $state,
-                            'lng' => (float) $longitude,
-                        ]);
-                    }),
-
-                TextInput::make('longitude')
-                    ->numeric()
-                    ->live(debounce: 500)
-                    ->afterStateUpdated(function ($state, Get $get, Set $set): void {
-                        $latitude = $get('latitude');
-
-                        if (! is_numeric($latitude) || ! is_numeric($state)) {
-                            return;
-                        }
-
-                        $set('location', [
-                            'lat' => (float) $latitude,
-                            'lng' => (float) $state,
-                        ]);
-                    }),
-            ]);
-    }
-}
+->drawable()
 ```
 
-This example gives you two-way synchronization:
+### `->drawTools(array $tools)`
 
-- clicking or dragging the map updates `latitude` and `longitude`
-- editing `latitude` and `longitude` manually updates the map position
-- editing an existing record restores the map position from stored coordinates via `afterStateHydrated()`
+Controls which draw tools are available. Supported values are `polygon`, `rectangle`, and `circle`.
 
-When searchable mode is enabled:
+```php
+->drawTools(['polygon', 'rectangle'])
+```
 
-- users can search for a place or address
-- the field shows matching results in a dropdown under the search input
-- selecting a result recenters the map to that location and closes the dropdown
-- the same results can be opened again without running a new search
-- the selected coordinates are written back into the field state
+### `->fitDrawBounds(bool $condition = true)`
+
+Controls whether the map should automatically fit to the drawn shapes after create or edit.
+
+```php
+->fitDrawBounds(false)
+```
+
+### `->multipleShapes(bool $condition = true)`
+
+Allows the field to keep multiple drawn shapes inside the GeoJSON `FeatureCollection`.
+
+```php
+->multipleShapes()
+```
 
 ## Asset Loading
 
 - Leaflet CSS is bundled and served locally by the package
 - Leaflet JS is bundled and served locally by the package
-- Package CSS and Alpine assets are registered through Filament assets
+- Leaflet Draw CSS/JS is bundled and served locally by the package
+- the Alpine component is lazy-loaded only when the field is rendered
 
 After updating package assets during development, republish them with:
 
@@ -405,7 +444,7 @@ php artisan filament:assets
 
 ## Building Assets
 
-This package includes its own package-local Node.js tooling for rebuilding minified assets.
+This package includes package-local Node.js tooling for rebuilding minified assets.
 
 Install development dependencies inside the package directory:
 
@@ -425,26 +464,26 @@ This regenerates:
 - `dist/components/map-picker.js`
 - `dist/map-picker.css`
 
-## Updating the Bundled Leaflet Version
+## Updating Bundled Leaflet Assets
 
-Leaflet is bundled locally so the package does not rely on a CDN. When you want to update Leaflet:
+Leaflet and Leaflet Draw are bundled locally so the package does not rely on a CDN. When you want to update them:
 
 ```bash
 cd packages/filament-map-picker
-npm install leaflet@latest --save-dev
+npm install leaflet@latest leaflet-draw@latest --save-dev
 npm run update:leaflet
 npm run build
 ```
 
 This workflow:
 
-- updates the package-local Leaflet dependency
+- updates the package-local Leaflet dependencies
 - copies Leaflet into `dist/leaflet/`
-- embeds Leaflet image assets into the CSS
-- minifies the bundled Leaflet CSS
+- copies Leaflet Draw into `dist/leaflet-draw/`
+- embeds image assets into the generated CSS where needed
 - rebuilds the package JS and CSS
 
-After that, republish Filament assets in the Laravel app:
+Then republish assets in the Laravel app:
 
 ```bash
 php artisan filament:assets
@@ -452,9 +491,10 @@ php artisan filament:assets
 
 ## Notes
 
-- The package does not force any persistence strategy for `latitude` and `longitude`
+- The package does not force any persistence strategy for `latitude`, `longitude`, or area GeoJSON
 - You are free to map the field state into any schema structure you prefer
 - Custom tiles are the developer's responsibility, including availability and usage terms
+- Search providers are the developer's responsibility, including availability and usage terms
 
 ## License
 

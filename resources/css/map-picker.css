@@ -148,6 +148,16 @@
     display: none !important;
 }
 
+.fi-map-picker-draw-hint {
+    border: 1px dashed rgba(37, 99, 235, 0.28);
+    border-radius: 0.875rem;
+    background: rgba(239, 246, 255, 0.86);
+    color: rgb(30, 64, 175);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    padding: 0.75rem 0.9rem;
+}
+
 .fi-map-picker-search-result {
     display: flex;
     align-items: start;
@@ -183,6 +193,25 @@
 
 .fi-map-picker-search-result-active .fi-map-picker-search-result-body strong {
     color: rgb(30, 64, 175);
+}
+
+.fi-map-picker-map-shell .leaflet-draw-toolbar a {
+    border-radius: 0.65rem;
+}
+
+.fi-map-picker-map-shell .leaflet-draw-toolbar a:last-child {
+    border-bottom-left-radius: 0.65rem;
+    border-bottom-right-radius: 0.65rem;
+}
+
+.fi-map-picker-map-shell .leaflet-draw-actions {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.fi-map-picker-map-shell .leaflet-draw-actions a {
+    color: rgb(15, 23, 42);
 }
 
 :where(.dark, .dark *) .fi-map-picker-search-panel {
@@ -243,6 +272,12 @@
     color: rgb(147, 197, 253);
 }
 
+:where(.dark, .dark *) .fi-map-picker-draw-hint {
+    border-color: rgba(96, 165, 250, 0.34);
+    background: rgba(30, 41, 59, 0.92);
+    color: rgb(191, 219, 254);
+}
+
 :where(.dark, .dark *) .fi-map-picker-search-results {
     border-color: rgba(71, 85, 105, 0.35);
     background: rgba(15, 23, 42, 0.92);
@@ -292,6 +327,16 @@
 :where(.dark, .dark *) .fi-map-picker-search-result-active .fi-map-picker-search-result-body strong {
     color: rgb(219, 234, 254);
     text-shadow: 0 1px 0 rgba(15, 23, 42, 0.4);
+}
+
+:where(.dark, .dark *) .fi-map-picker-map-shell .leaflet-draw-actions a {
+    color: rgb(241, 245, 249);
+    background: rgba(15, 23, 42, 0.96);
+}
+
+:where(.dark, .dark *) .fi-map-picker-map-shell .leaflet-draw-toolbar a {
+    background-color: rgba(15, 23, 42, 0.94);
+    border-color: rgba(71, 85, 105, 0.5);
 }
 
 .fi-map-picker-search-result-index {

@@ -1,56 +1,64 @@
 export default function mapPickerFormComponent(config) {
     return {
+        activeSearchResultKey: null,
         activeTile: config.tile ?? 'osm',
+        allowsMultipleShapes: !!config.allowsMultipleShapes,
+        clickHandler: null,
         currentLat: null,
         currentLng: null,
+        defaultLocation: config.defaultLocation ?? { lat: -6.2, lng: 106.816666 },
+        documentClickHandler: null,
+        drawControl: null,
+        drawCreatedHandler: null,
+        drawDeletedHandler: null,
+        drawEditedHandler: null,
+        drawTools: Array.isArray(config.drawTools) ? config.drawTools : [],
+        drawnItems: null,
+        emptyGeoJson: config.emptyGeoJson ?? { type: 'FeatureCollection', features: [] },
         height: config.height ?? '400px',
         isDisabled: !!config.isDisabled,
+        isDrawable: !!config.isDrawable,
         isSearchable: !!config.isSearchable,
         isSearching: false,
+        shouldFitDrawBounds: config.shouldFitDrawBounds !== false,
         layer: null,
         layersControl: null,
+        leafletDrawScriptUrl: config.leafletDrawScriptUrl ?? null,
+        leafletScriptUrl: config.leafletScriptUrl ?? null,
         map: null,
         marker: null,
         mode: config.mode ?? 'drag',
-        moveHandler: null,
         moveEndHandler: null,
-        clickHandler: null,
-        statePath: config.statePath,
+        moveHandler: null,
+        resizeObserver: null,
         searchError: '',
         searchProviderUrl: config.searchProviderUrl ?? 'https://nominatim.openstreetmap.org/search',
         searchQuery: '',
-        searchResultLimit: Number(config.searchResultLimit ?? 5),
-        searchResultsOpen: false,
-        searchResults: [],
-        activeSearchResultKey: null,
         searchResultLabel: '',
-        documentClickHandler: null,
-        tileLayers: {},
+        searchResultLimit: Number(config.searchResultLimit ?? 5),
+        searchResults: [],
+        searchResultsOpen: false,
+        statePath: config.statePath,
         tileKeys: Object.keys(config.tiles ?? {}),
+        tileLayers: {},
         tiles: config.tiles ?? {},
-        zoom: Number(config.zoom ?? 13),
-        defaultLocation: config.defaultLocation ?? { lat: -6.2, lng: 106.816666 },
-        resizeObserver: null,
         updateTimeout: null,
-
-        get formattedLat() {
-            return this.formatCoordinate(this.currentLat)
-        },
-
-        get formattedLng() {
-            return this.formatCoordinate(this.currentLng)
-        },
+        zoom: Number(config.zoom ?? 13),
 
         async init() {
             await this.waitForLeaflet()
 
+            if (this.isDrawable) {
+                await this.waitForLeafletDraw()
+            }
+
             this.initializeTiles()
 
-            const initialState = this.normalizeState(this.$wire.get(this.statePath))
-            const initialLocation = initialState ?? this.defaultLocation
+            const rawState = this.$wire.get(this.statePath)
+            const initialState = this.normalizeMapState(rawState)
 
-            this.currentLat = Number(initialLocation.lat)
-            this.currentLng = Number(initialLocation.lng)
+            this.currentLat = Number(initialState.lat)
+            this.currentLng = Number(initialState.lng)
 
             this.map = window.L.map(this.$refs.map, {
                 attributionControl: true,
@@ -71,52 +79,24 @@ export default function mapPickerFormComponent(config) {
                 })
             })
 
-            if (this.mode === 'click') {
-                this.marker = window.L.marker([this.currentLat, this.currentLng], {
-                    icon: this.makeClickMarkerIcon(),
-                }).addTo(this.map)
+            this.initializeLocationInteraction(initialState)
 
-                if (!this.isDisabled) {
-                    this.clickHandler = (event) => {
-                        this.setCoordinates(event.latlng.lat, event.latlng.lng, { pan: false })
-                        this.syncState()
-                    }
-
-                    this.map.on('click', this.clickHandler)
-                }
-            } else if (!this.isDisabled) {
-                this.moveHandler = () => {
-                    const center = this.map.getCenter()
-
-                    this.setCoordinates(center.lat, center.lng, { sync: false, pan: false })
-                    this.syncStateDebounced()
-                }
-
-                this.moveEndHandler = () => {
-                    const center = this.map.getCenter()
-
-                    this.setCoordinates(center.lat, center.lng, { sync: false, pan: false })
-                    this.syncState()
-                }
-
-                this.map.on('move', this.moveHandler)
-                this.map.on('moveend', this.moveEndHandler)
+            if (this.isDrawable) {
+                this.initializeDrawControls(initialState.geojson)
             }
 
             this.$watch(
                 () => this.$wire.get(this.statePath),
                 (value) => {
-                    const state = this.normalizeState(value)
+                    const state = this.normalizeMapState(value)
 
-                    if (!state) {
-                        return
+                    if (!this.coordinatesMatch(state.lat, state.lng)) {
+                        this.setCoordinates(state.lat, state.lng)
                     }
 
-                    if (this.coordinatesMatch(state.lat, state.lng)) {
-                        return
+                    if (this.isDrawable) {
+                        this.replaceDrawnItems(state.geojson)
                     }
-
-                    this.setCoordinates(state.lat, state.lng)
                 },
             )
 
@@ -139,6 +119,46 @@ export default function mapPickerFormComponent(config) {
             setTimeout(() => {
                 this.map?.invalidateSize()
             }, 200)
+        },
+
+        initializeLocationInteraction(initialState) {
+            if (this.mode === 'click') {
+                this.marker = window.L.marker([this.currentLat, this.currentLng], {
+                    icon: this.makeClickMarkerIcon(),
+                }).addTo(this.map)
+
+                if (!this.isDisabled) {
+                    this.clickHandler = (event) => {
+                        this.setCoordinates(event.latlng.lat, event.latlng.lng, { pan: false })
+                        this.syncState()
+                    }
+
+                    this.map.on('click', this.clickHandler)
+                }
+
+                return
+            }
+
+            if (this.isDisabled) {
+                return
+            }
+
+            this.moveHandler = () => {
+                const center = this.map.getCenter()
+
+                this.setCoordinates(center.lat, center.lng, { sync: false, pan: false })
+                this.syncStateDebounced()
+            }
+
+            this.moveEndHandler = () => {
+                const center = this.map.getCenter()
+
+                this.setCoordinates(center.lat, center.lng, { sync: false, pan: false })
+                this.syncState()
+            }
+
+            this.map.on('move', this.moveHandler)
+            this.map.on('moveend', this.moveEndHandler)
         },
 
         initializeTiles() {
@@ -165,12 +185,63 @@ export default function mapPickerFormComponent(config) {
                 return
             }
 
+            await this.ensureScript(this.leafletScriptUrl, 'data-map-picker-leaflet-script')
+            await this.pollUntil(() => window.L, 'Leaflet asset was not loaded.')
+        },
+
+        async waitForLeafletDraw() {
+            if (window.L?.Control?.Draw) {
+                return
+            }
+
+            await this.ensureScript(this.leafletDrawScriptUrl, 'data-map-picker-leaflet-draw-script')
+            await this.pollUntil(() => window.L?.Control?.Draw, 'Leaflet Draw asset was not loaded.')
+        },
+
+        async ensureScript(url, attribute) {
+            if (!url) {
+                return
+            }
+
+            const existingScript = document.querySelector(`script[${attribute}]`)
+
+            if (existingScript) {
+                if (existingScript.dataset.loaded === 'true') {
+                    return
+                }
+
+                await new Promise((resolve, reject) => {
+                    existingScript.addEventListener('load', resolve, { once: true })
+                    existingScript.addEventListener('error', reject, { once: true })
+                })
+
+                return
+            }
+
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script')
+
+                script.src = url
+                script.async = true
+                script.dataset.loaded = 'false'
+                script.setAttribute(attribute, 'true')
+                script.addEventListener('load', () => {
+                    script.dataset.loaded = 'true'
+                    resolve()
+                }, { once: true })
+                script.addEventListener('error', reject, { once: true })
+
+                document.head.appendChild(script)
+            })
+        },
+
+        async pollUntil(callback, message) {
             await new Promise((resolve, reject) => {
                 let attempts = 0
                 const maxAttempts = 100
 
                 const check = () => {
-                    if (window.L) {
+                    if (callback()) {
                         resolve()
 
                         return
@@ -179,7 +250,7 @@ export default function mapPickerFormComponent(config) {
                     attempts += 1
 
                     if (attempts >= maxAttempts) {
-                        reject(new Error('Leaflet asset was not loaded.'))
+                        reject(new Error(message))
 
                         return
                     }
@@ -234,21 +305,21 @@ export default function mapPickerFormComponent(config) {
                 const results = await response.json()
                 const mappedResults = Array.isArray(results)
                     ? results
-                          .map((result) => {
-                              const lat = Number(result.lat)
-                              const lng = Number(result.lon)
+                        .map((result) => {
+                            const lat = Number(result.lat)
+                            const lng = Number(result.lon)
 
-                              if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                                  return null
-                              }
+                            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                                return null
+                            }
 
-                              return {
-                                  lat,
-                                  lng,
-                                  label: typeof result.display_name === 'string' ? result.display_name : query,
-                              }
-                          })
-                          .filter(Boolean)
+                            return {
+                                lat,
+                                lng,
+                                label: typeof result.display_name === 'string' ? result.display_name : query,
+                            }
+                        })
+                        .filter(Boolean)
                     : []
 
                 if (!mappedResults.length) {
@@ -310,6 +381,146 @@ export default function mapPickerFormComponent(config) {
             this.syncState()
         },
 
+        initializeDrawControls(initialGeoJson) {
+            this.drawnItems = new window.L.FeatureGroup()
+            this.map.addLayer(this.drawnItems)
+
+            this.drawControl = new window.L.Control.Draw({
+                draw: {
+                    polyline: false,
+                    marker: false,
+                    circlemarker: false,
+                    polygon: this.drawTools.includes('polygon') && !this.isDisabled,
+                    rectangle: this.drawTools.includes('rectangle') && !this.isDisabled,
+                    circle: this.drawTools.includes('circle') && !this.isDisabled,
+                },
+                edit: {
+                    featureGroup: this.drawnItems,
+                    edit: !this.isDisabled,
+                    remove: !this.isDisabled,
+                },
+            })
+
+            this.map.addControl(this.drawControl)
+
+            this.drawCreatedHandler = (event) => {
+                if (!this.allowsMultipleShapes) {
+                    this.drawnItems.clearLayers()
+                }
+
+                this.drawnItems.addLayer(event.layer)
+
+                if (this.shouldFitDrawBounds) {
+                    this.fitToDrawnItems()
+                }
+
+                this.syncState()
+            }
+
+            this.drawEditedHandler = () => {
+                if (this.shouldFitDrawBounds) {
+                    this.fitToDrawnItems(false)
+                }
+
+                this.syncState()
+            }
+
+            this.drawDeletedHandler = () => {
+                this.syncState()
+            }
+
+            this.map.on(window.L.Draw.Event.CREATED, this.drawCreatedHandler)
+            this.map.on(window.L.Draw.Event.EDITED, this.drawEditedHandler)
+            this.map.on(window.L.Draw.Event.DELETED, this.drawDeletedHandler)
+
+            this.replaceDrawnItems(initialGeoJson)
+        },
+
+        replaceDrawnItems(state) {
+            if (!this.drawnItems || !window.L?.geoJSON) {
+                return
+            }
+
+            const current = JSON.stringify(this.serializeDrawnItems())
+            const next = JSON.stringify(state ?? this.emptyGeoJson)
+
+            if (current === next) {
+                return
+            }
+
+            this.drawnItems.clearLayers()
+
+            if (!state?.features?.length) {
+                return
+            }
+
+            const geoJsonLayer = window.L.geoJSON(state, {
+                pointToLayer: (feature, latlng) => {
+                    if (feature?.properties?.shape === 'circle') {
+                        return window.L.circle(latlng, {
+                            radius: Number(feature.properties.radius ?? 0),
+                        })
+                    }
+
+                    return window.L.marker(latlng)
+                },
+            })
+
+            geoJsonLayer.eachLayer((layer) => {
+                this.drawnItems.addLayer(layer)
+            })
+        },
+
+        fitToDrawnItems(animate = true) {
+            if (!this.drawnItems) {
+                return
+            }
+
+            const bounds = this.drawnItems.getBounds()
+
+            if (!bounds.isValid()) {
+                return
+            }
+
+            this.map.fitBounds(bounds, {
+                animate,
+                padding: [24, 24],
+            })
+        },
+
+        serializeDrawnItems() {
+            if (!this.drawnItems) {
+                return this.emptyGeoJson
+            }
+
+            const features = []
+
+            this.drawnItems.eachLayer((layer) => {
+                if (typeof layer.toGeoJSON !== 'function') {
+                    return
+                }
+
+                const feature = layer.toGeoJSON()
+                feature.properties = feature.properties ?? {}
+
+                if (layer instanceof window.L.Circle) {
+                    feature.properties.shape = 'circle'
+                    feature.properties.radius = layer.getRadius()
+                } else if (layer instanceof window.L.Rectangle) {
+                    feature.properties.shape = 'rectangle'
+                } else if (layer instanceof window.L.Polygon) {
+                    feature.properties.shape = 'polygon'
+                }
+
+                features.push(feature)
+            })
+
+            return {
+                type: 'FeatureCollection',
+                features,
+            }
+        },
+
         applyTileLayer(tileKey) {
             const resolvedTileKey = this.tiles[tileKey] ? tileKey : 'osm'
             const tile = this.tiles[resolvedTileKey] ?? this.tiles.osm
@@ -345,16 +556,10 @@ export default function mapPickerFormComponent(config) {
             })
 
             if (this.tileKeys.length > 1) {
-                this.layersControl = window.L.control
-                    .layers(
-                        baseLayers,
-                        {},
-                        {
-                            collapsed: true,
-                            position: 'topright',
-                        },
-                    )
-                    .addTo(this.map)
+                this.layersControl = window.L.control.layers(baseLayers, {}, {
+                    collapsed: true,
+                    position: 'topright',
+                }).addTo(this.map)
 
                 this.map.on('baselayerchange', (event) => {
                     const matchedEntry = Object.entries(this.tileLayers).find(([, layer]) => layer === event.layer)
@@ -413,33 +618,49 @@ export default function mapPickerFormComponent(config) {
         },
 
         syncState() {
-            if (this.currentLat === null || this.currentLng === null) {
-                return
-            }
-
-            this.$wire.set(this.statePath, {
+            const nextState = {
                 lat: this.currentLat,
                 lng: this.currentLng,
-            })
-        },
-
-        normalizeState(state) {
-            if (!state || typeof state !== 'object') {
-                return null
             }
 
-            if (state.lat === undefined || state.lng === undefined) {
-                return null
+            if (this.isDrawable) {
+                nextState.geojson = this.serializeDrawnItems()
+            }
+
+            this.$wire.set(this.statePath, nextState)
+        },
+
+        normalizeMapState(state) {
+            const defaults = {
+                lat: Number(this.defaultLocation.lat),
+                lng: Number(this.defaultLocation.lng),
+                geojson: this.emptyGeoJson,
+            }
+
+            if (!state || typeof state !== 'object') {
+                return defaults
             }
 
             const lat = Number(state.lat)
             const lng = Number(state.lng)
 
-            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+            return {
+                lat: Number.isNaN(lat) ? defaults.lat : lat,
+                lng: Number.isNaN(lng) ? defaults.lng : lng,
+                geojson: this.normalizeGeoJsonState(state.geojson) ?? this.emptyGeoJson,
+            }
+        },
+
+        normalizeGeoJsonState(state) {
+            if (!state || typeof state !== 'object') {
                 return null
             }
 
-            return { lat, lng }
+            if (state.type !== 'FeatureCollection' || !Array.isArray(state.features)) {
+                return null
+            }
+
+            return state
         },
 
         coordinatesMatch(lat, lng) {
@@ -447,14 +668,6 @@ export default function mapPickerFormComponent(config) {
             const nextLng = Number(lng)
 
             return Math.abs(this.currentLat - nextLat) < 0.000001 && Math.abs(this.currentLng - nextLng) < 0.000001
-        },
-
-        formatCoordinate(value) {
-            if (value === null || Number.isNaN(Number(value))) {
-                return '-'
-            }
-
-            return Number(value).toFixed(6)
         },
 
         destroy() {
@@ -480,18 +693,35 @@ export default function mapPickerFormComponent(config) {
                     this.map.off('moveend', this.moveEndHandler)
                 }
 
+                if (this.drawCreatedHandler) {
+                    this.map.off(window.L.Draw.Event.CREATED, this.drawCreatedHandler)
+                }
+
+                if (this.drawEditedHandler) {
+                    this.map.off(window.L.Draw.Event.EDITED, this.drawEditedHandler)
+                }
+
+                if (this.drawDeletedHandler) {
+                    this.map.off(window.L.Draw.Event.DELETED, this.drawDeletedHandler)
+                }
+
                 this.map.remove()
             }
 
-            this.clickHandler = null
-            this.layersControl = null
-            this.moveHandler = null
-            this.moveEndHandler = null
-            this.layer = null
-            this.marker = null
-            this.map = null
             this.activeSearchResultKey = null
+            this.clickHandler = null
             this.documentClickHandler = null
+            this.drawControl = null
+            this.drawCreatedHandler = null
+            this.drawDeletedHandler = null
+            this.drawEditedHandler = null
+            this.drawnItems = null
+            this.layer = null
+            this.layersControl = null
+            this.map = null
+            this.marker = null
+            this.moveEndHandler = null
+            this.moveHandler = null
             this.searchResults = []
             this.tileLayers = {}
         },

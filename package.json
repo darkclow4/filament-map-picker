@@ -8,6 +8,7 @@
     },
     "devDependencies": {
         "leaflet": "^1.9.4",
+        "leaflet-draw": "^1.0.4",
         "lightningcss": "^1.29.2",
         "terser": "^5.39.0"
     }

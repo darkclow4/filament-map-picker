@@ -5,6 +5,11 @@
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
+    <link rel="stylesheet" href="{{ \Filament\Support\Facades\FilamentAsset::getStyleHref('leaflet', 'darkclow4/filament-map-picker') }}" data-navigate-track />
+    @if ($isDrawable())
+        <link rel="stylesheet" href="{{ \Filament\Support\Facades\FilamentAsset::getStyleHref('leaflet-draw', 'darkclow4/filament-map-picker') }}" data-navigate-track />
+    @endif
+
     <div x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('map-picker', 'darkclow4/filament-map-picker') }}"
         x-data="mapPickerFormComponent({
@@ -19,6 +24,13 @@
             isSearchable: @js($isSearchable()),
             searchProviderUrl: @js($getSearchProviderUrl()),
             searchResultLimit: @js($getSearchResultLimit()),
+            isDrawable: @js($isDrawable()),
+            drawTools: @js($getDrawTools()),
+            emptyGeoJson: @js($getEmptyGeoJson()),
+            shouldFitDrawBounds: @js($shouldFitDrawBounds()),
+            allowsMultipleShapes: @js($allowsMultipleShapes()),
+            leafletScriptUrl: @js(\Filament\Support\Facades\FilamentAsset::getScriptSrc('leaflet', 'darkclow4/filament-map-picker')),
+            leafletDrawScriptUrl: @js(\Filament\Support\Facades\FilamentAsset::getScriptSrc('leaflet-draw', 'darkclow4/filament-map-picker')),
         })" style="--fi-map-picker-marker-color: {{ $getMarkerColor() }};"
         {{ $getExtraAttributeBag()->class(['fi-map-picker']) }}>
         @if ($isSearchable())

@@ -37,6 +37,17 @@ class MapPicker extends Field
 
     protected int|Closure|null $searchResultLimit = null;
 
+    protected bool|Closure $shouldFitDrawBounds = true;
+
+    protected bool|Closure $allowsMultipleShapes = false;
+
+    protected bool|Closure $isDrawable = false;
+
+    /**
+     * @var array<int, string>|Closure|null
+     */
+    protected array|Closure|null $drawTools = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -50,8 +61,11 @@ class MapPicker extends Field
         $this->searchPlaceholder('Search for a place...');
         $this->searchProviderUrl('https://nominatim.openstreetmap.org/search');
         $this->searchResultLimit(5);
+        $this->drawTools(['polygon', 'rectangle', 'circle']);
+        $this->fitDrawBounds();
+        $this->multipleShapes(false);
 
-        $this->default(fn (MapPicker $component): array => $component->getDefaultLocation());
+        $this->default(fn (MapPicker $component): array => $component->getInitialState());
     }
 
     public function tile(string|Closure|null $tile): static
@@ -131,6 +145,37 @@ class MapPicker extends Field
     public function searchResultLimit(int|Closure|null $limit): static
     {
         $this->searchResultLimit = $limit;
+
+        return $this;
+    }
+
+    public function fitDrawBounds(bool|Closure $condition = true): static
+    {
+        $this->shouldFitDrawBounds = $condition;
+
+        return $this;
+    }
+
+    public function multipleShapes(bool|Closure $condition = true): static
+    {
+        $this->allowsMultipleShapes = $condition;
+
+        return $this;
+    }
+
+    public function drawable(bool|Closure $condition = true): static
+    {
+        $this->isDrawable = $condition;
+
+        return $this;
+    }
+
+    /**
+     * @param  array<int, string>|Closure|null  $tools
+     */
+    public function drawTools(array|Closure|null $tools): static
+    {
+        $this->drawTools = $tools;
 
         return $this;
     }
@@ -243,6 +288,56 @@ class MapPicker extends Field
         return max($limit, 1);
     }
 
+    public function shouldFitDrawBounds(): bool
+    {
+        return (bool) $this->evaluate($this->shouldFitDrawBounds);
+    }
+
+    public function allowsMultipleShapes(): bool
+    {
+        return (bool) $this->evaluate($this->allowsMultipleShapes);
+    }
+
+    public function isDrawable(): bool
+    {
+        return (bool) $this->evaluate($this->isDrawable);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getDrawTools(): array
+    {
+        return $this->normalizeDrawTools($this->evaluate($this->drawTools) ?? ['polygon', 'rectangle', 'circle']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getInitialState(): array
+    {
+        if ($this->isDrawable()) {
+            return [
+                'lat' => $this->getDefaultLocation()['lat'],
+                'lng' => $this->getDefaultLocation()['lng'],
+                'geojson' => $this->getEmptyGeoJson(),
+            ];
+        }
+
+        return $this->getDefaultLocation();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getEmptyGeoJson(): array
+    {
+        return [
+            'type' => 'FeatureCollection',
+            'features' => [],
+        ];
+    }
+
     /**
      * @return array<string, array<string, mixed>>
      */
@@ -293,5 +388,16 @@ class MapPicker extends Field
         }
 
         return $normalized;
+    }
+
+    /**
+     * @param  array<int, string>  $tools
+     * @return array<int, string>
+     */
+    protected function normalizeDrawTools(array $tools): array
+    {
+        $allowed = ['polygon', 'rectangle', 'circle'];
+
+        return array_values(array_unique(array_filter($tools, fn (mixed $tool): bool => is_string($tool) && in_array($tool, $allowed, true))));
     }
 }
