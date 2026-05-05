@@ -1,4 +1,5 @@
 .fi-map-picker {
+    --fi-map-picker-marker-color: #e11d48;
     display: grid;
     gap: 1rem;
 }
@@ -48,8 +49,8 @@
     height: 1.5rem;
     border: 3px solid rgba(255, 255, 255, 0.95);
     border-radius: 9999px 9999px 9999px 0;
-    background: linear-gradient(135deg, rgb(239, 68, 68), rgb(190, 24, 93));
-    box-shadow: 0 10px 25px rgba(190, 24, 93, 0.32);
+    background: var(--fi-map-picker-marker-color);
+    box-shadow: 0 10px 25px color-mix(in srgb, var(--fi-map-picker-marker-color) 32%, transparent);
     transform: rotate(-45deg);
 }
 
@@ -66,6 +67,46 @@
     height: 0.55rem;
     margin-top: 0.35rem;
     margin-left: -0.15rem;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.18);
+    filter: blur(2px);
+}
+
+.fi-map-picker-click-marker-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 30px;
+    height: 42px;
+    overflow: visible;
+    background: transparent;
+    border: none;
+}
+
+.fi-map-picker-click-marker-pin {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0 auto;
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    border-radius: 9999px 9999px 9999px 0;
+    background: var(--fi-map-picker-marker-color);
+    box-shadow: 0 10px 25px color-mix(in srgb, var(--fi-map-picker-marker-color) 32%, transparent);
+    transform: rotate(-45deg);
+}
+
+.fi-map-picker-click-marker-pin::after {
+    content: '';
+    position: absolute;
+    inset: 0.26rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.fi-map-picker-click-marker-shadow {
+    width: 1.85rem;
+    height: 0.55rem;
+    margin: 0.35rem auto 0;
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.18);
     filter: blur(2px);

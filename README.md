@@ -48,6 +48,19 @@ After installation, publish Filament assets:
 php artisan filament:assets
 ```
 
+## Runtime vs Development Dependencies
+
+The published package does not need `node_modules` at runtime.
+
+- Laravel and Filament only use the committed files inside `dist/`
+- `node_modules` is only needed when maintaining the package locally
+- This means consumers of the package do not need Node.js just to use the field
+
+In short:
+
+- runtime usage: no `node_modules` required
+- package maintenance: `node_modules` required only when rebuilding assets or updating bundled Leaflet
+
 ## Package Registration
 
 The package supports Laravel auto-discovery through:
@@ -151,7 +164,7 @@ MapPicker::make('location')
             ],
         ],
     ])
-    ->tile('google');
+    ->tile('opentopo');
 ```
 
 Tile behavior:
@@ -225,6 +238,15 @@ Sets the map container height.
 ->height('60vh')
 ```
 
+### `->markerColor(string $color)`
+
+Sets the marker color used in both `drag` and `click` modes.
+
+```php
+->markerColor('#0f766e')
+->markerColor('rgb(37, 99, 235)')
+```
+
 ## Example: Filament Form Integration
 
 ```php
@@ -262,6 +284,7 @@ class OrganizationForm
                     ->tile('opentopo')
                     ->mode('click')
                     ->defaultLocation(-6.2, 106.816666)
+                    ->markerColor('#2563eb')
                     ->zoom(13)
                     ->height(420)
                     ->live()
@@ -284,22 +307,101 @@ class OrganizationForm
                     }),
 
                 TextInput::make('latitude')
-                    ->numeric(),
+                    ->numeric()
+                    ->live(debounce: 500)
+                    ->afterStateUpdated(function ($state, Get $get, Set $set): void {
+                        $longitude = $get('longitude');
+
+                        if (! is_numeric($state) || ! is_numeric($longitude)) {
+                            return;
+                        }
+
+                        $set('location', [
+                            'lat' => (float) $state,
+                            'lng' => (float) $longitude,
+                        ]);
+                    }),
 
                 TextInput::make('longitude')
-                    ->numeric(),
+                    ->numeric()
+                    ->live(debounce: 500)
+                    ->afterStateUpdated(function ($state, Get $get, Set $set): void {
+                        $latitude = $get('latitude');
+
+                        if (! is_numeric($latitude) || ! is_numeric($state)) {
+                            return;
+                        }
+
+                        $set('location', [
+                            'lat' => (float) $latitude,
+                            'lng' => (float) $state,
+                        ]);
+                    }),
             ]);
     }
 }
 ```
 
+This example gives you two-way synchronization:
+
+- clicking or dragging the map updates `latitude` and `longitude`
+- editing `latitude` and `longitude` manually updates the map position
+- editing an existing record restores the map position from stored coordinates via `afterStateHydrated()`
+
 ## Asset Loading
 
-- Leaflet CSS is injected automatically by the package
-- Leaflet JS is lazy-loaded when the field is rendered
+- Leaflet CSS is bundled and served locally by the package
+- Leaflet JS is bundled and served locally by the package
 - Package CSS and Alpine assets are registered through Filament assets
 
 After updating package assets during development, republish them with:
+
+```bash
+php artisan filament:assets
+```
+
+## Building Assets
+
+This package includes its own package-local Node.js tooling for rebuilding minified assets.
+
+Install development dependencies inside the package directory:
+
+```bash
+cd packages/filament-map-picker
+npm install
+```
+
+Build minified package assets:
+
+```bash
+npm run build
+```
+
+This regenerates:
+
+- `dist/components/map-picker.js`
+- `dist/map-picker.css`
+
+## Updating the Bundled Leaflet Version
+
+Leaflet is bundled locally so the package does not rely on a CDN. When you want to update Leaflet:
+
+```bash
+cd packages/filament-map-picker
+npm install leaflet@latest --save-dev
+npm run update:leaflet
+npm run build
+```
+
+This workflow:
+
+- updates the package-local Leaflet dependency
+- copies Leaflet into `dist/leaflet/`
+- embeds Leaflet image assets into the CSS
+- minifies the bundled Leaflet CSS
+- rebuilds the package JS and CSS
+
+After that, republish Filament assets in the Laravel app:
 
 ```bash
 php artisan filament:assets

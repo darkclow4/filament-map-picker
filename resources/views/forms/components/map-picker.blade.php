@@ -18,6 +18,7 @@
             height: @js($getHeight()),
             isDisabled: @js($isDisabled()),
         })"
+        style="--fi-map-picker-marker-color: {{ $getMarkerColor() }};"
         {{
             $getExtraAttributeBag()
                 ->class(['fi-map-picker'])

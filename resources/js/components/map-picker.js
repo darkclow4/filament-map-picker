@@ -31,7 +31,7 @@ export default function mapPickerFormComponent(config) {
         },
 
         async init() {
-            await this.ensureLeaflet()
+            await this.waitForLeaflet()
 
             this.initializeTiles()
 
@@ -61,7 +61,9 @@ export default function mapPickerFormComponent(config) {
             })
 
             if (this.mode === 'click') {
-                this.marker = window.L.marker([this.currentLat, this.currentLng]).addTo(this.map)
+                this.marker = window.L.marker([this.currentLat, this.currentLng], {
+                    icon: this.makeClickMarkerIcon(),
+                }).addTo(this.map)
 
                 if (!this.isDisabled) {
                     this.clickHandler = (event) => {
@@ -136,40 +138,34 @@ export default function mapPickerFormComponent(config) {
             }
         },
 
-        async ensureLeaflet() {
+        async waitForLeaflet() {
             if (window.L) {
                 return
             }
 
             await new Promise((resolve, reject) => {
-                const existingScript = document.querySelector('script[data-map-picker-leaflet]')
+                let attempts = 0
+                const maxAttempts = 100
 
-                if (existingScript) {
-                    if (existingScript.dataset.loaded === 'true' && window.L) {
+                const check = () => {
+                    if (window.L) {
                         resolve()
 
                         return
                     }
 
-                    existingScript.addEventListener('load', () => resolve(), { once: true })
-                    existingScript.addEventListener('error', () => reject(new Error('Failed loading Leaflet.')), { once: true })
+                    attempts += 1
 
-                    return
+                    if (attempts >= maxAttempts) {
+                        reject(new Error('Leaflet asset was not loaded.'))
+
+                        return
+                    }
+
+                    window.setTimeout(check, 50)
                 }
 
-                const script = document.createElement('script')
-
-                script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-                script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-                script.crossOrigin = ''
-                script.dataset.mapPickerLeaflet = 'true'
-                script.onload = () => {
-                    script.dataset.loaded = 'true'
-                    resolve()
-                }
-                script.onerror = () => reject(new Error('Failed loading Leaflet.'))
-
-                document.head.appendChild(script)
+                check()
             })
         },
 
@@ -224,6 +220,21 @@ export default function mapPickerFormComponent(config) {
                     this.layer = matchedEntry[1]
                 })
             }
+        },
+
+        makeClickMarkerIcon() {
+            return window.L.divIcon({
+                className: '',
+                html: `
+                    <div class="fi-map-picker-click-marker-icon">
+                        <div class="fi-map-picker-click-marker-pin"></div>
+                        <div class="fi-map-picker-click-marker-shadow"></div>
+                    </div>
+                `,
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+                popupAnchor: [0, -36],
+            })
         },
 
         setCoordinates(lat, lng, options = {}) {

@@ -27,20 +27,20 @@ class MapPicker extends Field
 
     protected int|string|Closure|null $height = null;
 
+    protected string|Closure|null $markerColor = null;
+
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->default([
-            'lat' => -6.2,
-            'lng' => 106.816666,
-        ]);
 
         $this->tile('osm');
         $this->mode('drag');
         $this->defaultLocation(-6.2, 106.816666);
         $this->zoom(13);
         $this->height(400);
+        $this->markerColor('#e11d48');
+
+        $this->default(fn (MapPicker $component): array => $component->getDefaultLocation());
     }
 
     public function tile(string|Closure|null $tile): static
@@ -85,6 +85,13 @@ class MapPicker extends Field
     public function height(int|string|Closure $height): static
     {
         $this->height = $height;
+
+        return $this;
+    }
+
+    public function markerColor(string|Closure|null $color): static
+    {
+        $this->markerColor = $color;
 
         return $this;
     }
@@ -156,6 +163,15 @@ class MapPicker extends Field
         }
 
         return (string) $height;
+    }
+
+    public function getMarkerColor(): string
+    {
+        $color = $this->evaluate($this->markerColor) ?? '#e11d48';
+
+        return is_string($color) && trim($color) !== ''
+            ? trim($color)
+            : '#e11d48';
     }
 
     /**

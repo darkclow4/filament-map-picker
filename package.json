@@ -1,0 +1,14 @@
+{
+    "name": "darkclow4/filament-map-picker",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "update:leaflet": "node scripts/update-leaflet.mjs"
+    },
+    "devDependencies": {
+        "leaflet": "^1.9.4",
+        "lightningcss": "^1.29.2",
+        "terser": "^5.39.0"
+    }
+}
