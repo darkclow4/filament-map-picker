@@ -185,6 +185,115 @@
     color: rgb(30, 64, 175);
 }
 
+:where(.dark, .dark *) .fi-map-picker-search-panel {
+    border-color: rgba(71, 85, 105, 0.4);
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 34%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.92));
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-eyebrow {
+    color: rgb(125, 211, 252);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-title {
+    color: rgb(241, 245, 249);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-status {
+    color: rgb(147, 197, 253);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-toggle {
+    border-color: rgba(100, 116, 139, 0.45);
+    background: rgba(30, 41, 59, 0.86);
+    color: rgb(226, 232, 240);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-input {
+    border-color: rgba(100, 116, 139, 0.45);
+    background: rgba(15, 23, 42, 0.8);
+    color: rgb(241, 245, 249);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-input::placeholder {
+    color: rgb(148, 163, 184);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-input:focus {
+    border-color: rgba(96, 165, 250, 0.7);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-icon {
+    color: rgb(148, 163, 184);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-button {
+    background: linear-gradient(135deg, rgb(37, 99, 235), rgb(30, 64, 175));
+    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.28);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-feedback-error {
+    color: rgb(252, 165, 165);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-feedback-success {
+    color: rgb(147, 197, 253);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-results {
+    border-color: rgba(71, 85, 105, 0.35);
+    background: rgba(15, 23, 42, 0.92);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result {
+    border-color: rgba(71, 85, 105, 0.45);
+    background: rgba(30, 41, 59, 0.86);
+    color: rgb(248, 250, 252);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result:hover {
+    border-color: rgba(96, 165, 250, 0.45);
+    box-shadow: 0 14px 28px rgba(2, 6, 23, 0.34);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-index {
+    background: rgba(59, 130, 246, 0.2);
+    color: rgb(191, 219, 254);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-body strong {
+    color: rgb(255, 255, 255);
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(15, 23, 42, 0.55);
+    letter-spacing: 0.01em;
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-body small {
+    color: rgb(226, 232, 240);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-active {
+    border-color: rgba(96, 165, 250, 0.48);
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 44%),
+        rgba(30, 41, 59, 0.98);
+    box-shadow: 0 16px 30px rgba(30, 64, 175, 0.18);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-active .fi-map-picker-search-result-index {
+    background: rgb(96, 165, 250);
+    color: rgb(15, 23, 42);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-active .fi-map-picker-search-result-body strong {
+    color: rgb(219, 234, 254);
+    text-shadow: 0 1px 0 rgba(15, 23, 42, 0.4);
+}
+
 .fi-map-picker-search-result-index {
     display: inline-flex;
     align-items: center;
@@ -322,6 +431,35 @@
     border-radius: 9999px;
     background: rgba(15, 23, 42, 0.18);
     filter: blur(2px);
+}
+
+/* Keep dark-mode overrides after base result text styles so they win the cascade. */
+:where(.dark, .dark *) .fi-map-picker-search-result {
+    color: rgb(248, 250, 252);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-index {
+    color: rgb(191, 219, 254);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-body strong {
+    color: rgb(255, 255, 255);
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(15, 23, 42, 0.55);
+    letter-spacing: 0.01em;
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-body small {
+    color: rgb(226, 232, 240);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-active .fi-map-picker-search-result-index {
+    color: rgb(15, 23, 42);
+}
+
+:where(.dark, .dark *) .fi-map-picker-search-result-active .fi-map-picker-search-result-body strong {
+    color: rgb(219, 234, 254);
+    text-shadow: 0 1px 0 rgba(15, 23, 42, 0.4);
 }
 
 @media (max-width: 640px) {
