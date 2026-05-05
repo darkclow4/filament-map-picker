@@ -29,6 +29,14 @@ class MapPicker extends Field
 
     protected string|Closure|null $markerColor = null;
 
+    protected bool|Closure $isSearchable = false;
+
+    protected string|Closure|null $searchPlaceholder = null;
+
+    protected string|Closure|null $searchProviderUrl = null;
+
+    protected int|Closure|null $searchResultLimit = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,6 +47,9 @@ class MapPicker extends Field
         $this->zoom(13);
         $this->height(400);
         $this->markerColor('#e11d48');
+        $this->searchPlaceholder('Search for a place...');
+        $this->searchProviderUrl('https://nominatim.openstreetmap.org/search');
+        $this->searchResultLimit(5);
 
         $this->default(fn (MapPicker $component): array => $component->getDefaultLocation());
     }
@@ -92,6 +103,34 @@ class MapPicker extends Field
     public function markerColor(string|Closure|null $color): static
     {
         $this->markerColor = $color;
+
+        return $this;
+    }
+
+    public function searchable(bool|Closure $condition = true): static
+    {
+        $this->isSearchable = $condition;
+
+        return $this;
+    }
+
+    public function searchPlaceholder(string|Closure|null $placeholder): static
+    {
+        $this->searchPlaceholder = $placeholder;
+
+        return $this;
+    }
+
+    public function searchProviderUrl(string|Closure|null $url): static
+    {
+        $this->searchProviderUrl = $url;
+
+        return $this;
+    }
+
+    public function searchResultLimit(int|Closure|null $limit): static
+    {
+        $this->searchResultLimit = $limit;
 
         return $this;
     }
@@ -172,6 +211,36 @@ class MapPicker extends Field
         return is_string($color) && trim($color) !== ''
             ? trim($color)
             : '#e11d48';
+    }
+
+    public function isSearchable(): bool
+    {
+        return (bool) $this->evaluate($this->isSearchable);
+    }
+
+    public function getSearchPlaceholder(): string
+    {
+        $placeholder = $this->evaluate($this->searchPlaceholder) ?? 'Search for a place...';
+
+        return is_string($placeholder) && trim($placeholder) !== ''
+            ? trim($placeholder)
+            : 'Search for a place...';
+    }
+
+    public function getSearchProviderUrl(): string
+    {
+        $url = $this->evaluate($this->searchProviderUrl) ?? 'https://nominatim.openstreetmap.org/search';
+
+        return is_string($url) && trim($url) !== ''
+            ? trim($url)
+            : 'https://nominatim.openstreetmap.org/search';
+    }
+
+    public function getSearchResultLimit(): int
+    {
+        $limit = (int) ($this->evaluate($this->searchResultLimit) ?? 5);
+
+        return max($limit, 1);
     }
 
     /**

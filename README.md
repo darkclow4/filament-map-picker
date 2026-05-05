@@ -11,6 +11,7 @@ The field does not directly persist `latitude` and `longitude` columns. Instead,
 - Default OpenStreetMap tile layer
 - Custom tile support through `->tiles([...])`
 - `drag` mode and `click` mode
+- Optional place search powered by geocoding
 - Reactive Livewire state
 - Alpine.js powered interaction
 - Leaflet layers control for switching tile layers
@@ -247,6 +248,38 @@ Sets the marker color used in both `drag` and `click` modes.
 ->markerColor('rgb(37, 99, 235)')
 ```
 
+### `->searchable(bool $condition = true)`
+
+Enables a simple place search input above the map.
+
+```php
+->searchable()
+```
+
+### `->searchPlaceholder(string $placeholder)`
+
+Overrides the search input placeholder.
+
+```php
+->searchPlaceholder('Search for a city or address')
+```
+
+### `->searchProviderUrl(string $url)`
+
+Overrides the geocoding endpoint used by the search box.
+
+```php
+->searchProviderUrl('https://nominatim.openstreetmap.org/search')
+```
+
+### `->searchResultLimit(int $limit)`
+
+Controls how many geocoding results are shown in the selectable search list.
+
+```php
+->searchResultLimit(8)
+```
+
 ## Example: Filament Form Integration
 
 ```php
@@ -285,6 +318,8 @@ class OrganizationForm
                     ->mode('click')
                     ->defaultLocation(-6.2, 106.816666)
                     ->markerColor('#2563eb')
+                    ->searchable()
+                    ->searchPlaceholder('Search for a location')
                     ->zoom(13)
                     ->height(420)
                     ->live()
@@ -347,6 +382,14 @@ This example gives you two-way synchronization:
 - clicking or dragging the map updates `latitude` and `longitude`
 - editing `latitude` and `longitude` manually updates the map position
 - editing an existing record restores the map position from stored coordinates via `afterStateHydrated()`
+
+When searchable mode is enabled:
+
+- users can search for a place or address
+- the field shows matching results in a dropdown under the search input
+- selecting a result recenters the map to that location and closes the dropdown
+- the same results can be opened again without running a new search
+- the selected coordinates are written back into the field state
 
 ## Asset Loading
 

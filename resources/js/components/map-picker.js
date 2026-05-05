@@ -5,6 +5,8 @@ export default function mapPickerFormComponent(config) {
         currentLng: null,
         height: config.height ?? '400px',
         isDisabled: !!config.isDisabled,
+        isSearchable: !!config.isSearchable,
+        isSearching: false,
         layer: null,
         layersControl: null,
         map: null,
@@ -14,6 +16,15 @@ export default function mapPickerFormComponent(config) {
         moveEndHandler: null,
         clickHandler: null,
         statePath: config.statePath,
+        searchError: '',
+        searchProviderUrl: config.searchProviderUrl ?? 'https://nominatim.openstreetmap.org/search',
+        searchQuery: '',
+        searchResultLimit: Number(config.searchResultLimit ?? 5),
+        searchResultsOpen: false,
+        searchResults: [],
+        activeSearchResultKey: null,
+        searchResultLabel: '',
+        documentClickHandler: null,
         tileLayers: {},
         tileKeys: Object.keys(config.tiles ?? {}),
         tiles: config.tiles ?? {},
@@ -92,19 +103,22 @@ export default function mapPickerFormComponent(config) {
                 this.map.on('moveend', this.moveEndHandler)
             }
 
-            this.$watch(() => this.$wire.get(this.statePath), (value) => {
-                const state = this.normalizeState(value)
+            this.$watch(
+                () => this.$wire.get(this.statePath),
+                (value) => {
+                    const state = this.normalizeState(value)
 
-                if (!state) {
-                    return
-                }
+                    if (!state) {
+                        return
+                    }
 
-                if (this.coordinatesMatch(state.lat, state.lng)) {
-                    return
-                }
+                    if (this.coordinatesMatch(state.lat, state.lng)) {
+                        return
+                    }
 
-                this.setCoordinates(state.lat, state.lng)
-            })
+                    this.setCoordinates(state.lat, state.lng)
+                },
+            )
 
             this.syncState()
 
@@ -113,6 +127,14 @@ export default function mapPickerFormComponent(config) {
             })
 
             this.resizeObserver.observe(this.$root)
+
+            this.documentClickHandler = (event) => {
+                if (!this.$root?.contains(event.target)) {
+                    this.searchResultsOpen = false
+                }
+            }
+
+            document.addEventListener('click', this.documentClickHandler)
 
             setTimeout(() => {
                 this.map?.invalidateSize()
@@ -169,6 +191,125 @@ export default function mapPickerFormComponent(config) {
             })
         },
 
+        async performSearch() {
+            if (!this.isSearchable || this.isDisabled || this.isSearching) {
+                return
+            }
+
+            const query = this.searchQuery.trim()
+
+            if (!query.length) {
+                this.searchError = 'Enter a place name to search.'
+                this.searchResultLabel = ''
+                this.searchResults = []
+                this.searchResultsOpen = false
+
+                return
+            }
+
+            this.isSearching = true
+            this.searchError = ''
+            this.searchResultLabel = ''
+            this.searchResults = []
+            this.searchResultsOpen = false
+
+            try {
+                const url = new URL(this.searchProviderUrl)
+                const resultLimit = Number.isFinite(this.searchResultLimit) ? Math.max(1, this.searchResultLimit) : 5
+
+                url.searchParams.set('q', query)
+                url.searchParams.set('format', 'jsonv2')
+                url.searchParams.set('limit', String(resultLimit))
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                })
+
+                if (!response.ok) {
+                    throw new Error('Search request failed.')
+                }
+
+                const results = await response.json()
+                const mappedResults = Array.isArray(results)
+                    ? results
+                          .map((result) => {
+                              const lat = Number(result.lat)
+                              const lng = Number(result.lon)
+
+                              if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                                  return null
+                              }
+
+                              return {
+                                  lat,
+                                  lng,
+                                  label: typeof result.display_name === 'string' ? result.display_name : query,
+                              }
+                          })
+                          .filter(Boolean)
+                    : []
+
+                if (!mappedResults.length) {
+                    this.searchError = 'No matching place found.'
+
+                    return
+                }
+
+                this.searchResults = mappedResults
+                this.searchResultsOpen = true
+                this.activeSearchResultKey = null
+                this.searchResultLabel = `${mappedResults.length} result${mappedResults.length > 1 ? 's' : ''} found.`
+            } catch (error) {
+                this.searchError = error instanceof Error ? error.message : 'Unable to complete the search.'
+            } finally {
+                this.isSearching = false
+            }
+        },
+
+        toggleSearchResults() {
+            if (!this.searchResults.length) {
+                return
+            }
+
+            this.searchResultsOpen = !this.searchResultsOpen
+        },
+
+        closeSearchResults() {
+            this.searchResultsOpen = false
+        },
+
+        getSearchResultKey(result) {
+            if (!result) {
+                return null
+            }
+
+            return `${result.lat}:${result.lng}:${result.label}`
+        },
+
+        isSearchResultActive(result) {
+            return this.activeSearchResultKey !== null && this.activeSearchResultKey === this.getSearchResultKey(result)
+        },
+
+        selectSearchResult(result) {
+            if (!result) {
+                return
+            }
+
+            this.searchError = ''
+            this.searchResultLabel = result.label
+            this.searchQuery = result.label
+            this.activeSearchResultKey = this.getSearchResultKey(result)
+            this.closeSearchResults()
+
+            this.setCoordinates(result.lat, result.lng, { pan: false })
+            this.map.setView([result.lat, result.lng], Math.max(this.zoom, 18), {
+                animate: true,
+            })
+            this.syncState()
+        },
+
         applyTileLayer(tileKey) {
             const resolvedTileKey = this.tiles[tileKey] ? tileKey : 'osm'
             const tile = this.tiles[resolvedTileKey] ?? this.tiles.osm
@@ -204,10 +345,16 @@ export default function mapPickerFormComponent(config) {
             })
 
             if (this.tileKeys.length > 1) {
-                this.layersControl = window.L.control.layers(baseLayers, {}, {
-                    collapsed: true,
-                    position: 'topright',
-                }).addTo(this.map)
+                this.layersControl = window.L.control
+                    .layers(
+                        baseLayers,
+                        {},
+                        {
+                            collapsed: true,
+                            position: 'topright',
+                        },
+                    )
+                    .addTo(this.map)
 
                 this.map.on('baselayerchange', (event) => {
                     const matchedEntry = Object.entries(this.tileLayers).find(([, layer]) => layer === event.layer)
@@ -316,6 +463,10 @@ export default function mapPickerFormComponent(config) {
             this.resizeObserver?.disconnect()
             this.resizeObserver = null
 
+            if (this.documentClickHandler) {
+                document.removeEventListener('click', this.documentClickHandler)
+            }
+
             if (this.map) {
                 if (this.clickHandler) {
                     this.map.off('click', this.clickHandler)
@@ -339,6 +490,9 @@ export default function mapPickerFormComponent(config) {
             this.layer = null
             this.marker = null
             this.map = null
+            this.activeSearchResultKey = null
+            this.documentClickHandler = null
+            this.searchResults = []
             this.tileLayers = {}
         },
     }
