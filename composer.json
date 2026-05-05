@@ -1,0 +1,44 @@
+{
+    "name": "darkclow4/filament-map-picker",
+    "description": "Map picker field for Filament 5 using Leaflet.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "filament",
+        "filament-plugin",
+        "leaflet",
+        "map-picker",
+        "maps"
+    ],
+    "homepage": "https://github.com/darkclow4/filament-map-picker",
+    "support": {
+        "issues": "https://github.com/darkclow4/filament-map-picker/issues",
+        "source": "https://github.com/darkclow4/filament-map-picker"
+    },
+    "authors": [
+        {
+            "name": "Darkclow4"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "filament/filament": "^5.0",
+        "illuminate/contracts": "^13.0",
+        "spatie/laravel-package-tools": "^1.92"
+    },
+    "autoload": {
+        "psr-4": {
+            "Darkclow4\\FilamentMapPicker\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Darkclow4\\FilamentMapPicker\\FilamentMapPickerServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
