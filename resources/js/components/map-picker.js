@@ -60,6 +60,28 @@ export default function mapPickerFormComponent(config) {
             this.currentLat = Number(initialState.lat)
             this.currentLng = Number(initialState.lng)
 
+            this.initializeMap()
+
+            this.initializeLayersControl()
+            this.applyTileLayer(this.activeTile)
+            this.setupMapReadyHandler()
+
+            this.initializeLocationInteraction(initialState)
+
+            if (this.isDrawable) {
+                this.initializeDrawControls(initialState.geojson)
+            }
+
+            this.setupStateWatcher()
+
+            this.syncState()
+
+            this.setupResizeObserver()
+            this.setupDocumentClickHandler()
+            this.scheduleMapResize()
+        },
+
+        initializeMap() {
             this.map = window.L.map(this.$refs.map, {
                 attributionControl: true,
                 center: [this.currentLat, this.currentLng],
@@ -69,22 +91,17 @@ export default function mapPickerFormComponent(config) {
                 touchZoom: !this.isDisabled,
                 zoomControl: true,
             }).setView([this.currentLat, this.currentLng], this.zoom)
+        },
 
-            this.initializeLayersControl()
-            this.applyTileLayer(this.activeTile)
-
+        setupMapReadyHandler() {
             this.map.whenReady(() => {
                 requestAnimationFrame(() => {
                     this.map?.invalidateSize()
                 })
             })
+        },
 
-            this.initializeLocationInteraction(initialState)
-
-            if (this.isDrawable) {
-                this.initializeDrawControls(initialState.geojson)
-            }
-
+        setupStateWatcher() {
             this.$watch(
                 () => this.$wire.get(this.statePath),
                 (value) => {
@@ -99,15 +116,17 @@ export default function mapPickerFormComponent(config) {
                     }
                 },
             )
+        },
 
-            this.syncState()
-
+        setupResizeObserver() {
             this.resizeObserver = new ResizeObserver(() => {
                 this.map?.invalidateSize()
             })
 
             this.resizeObserver.observe(this.$root)
+        },
 
+        setupDocumentClickHandler() {
             this.documentClickHandler = (event) => {
                 if (!this.$root?.contains(event.target)) {
                     this.searchResultsOpen = false
@@ -115,7 +134,9 @@ export default function mapPickerFormComponent(config) {
             }
 
             document.addEventListener('click', this.documentClickHandler)
+        },
 
+        scheduleMapResize() {
             setTimeout(() => {
                 this.map?.invalidateSize()
             }, 200)
@@ -286,7 +307,7 @@ export default function mapPickerFormComponent(config) {
 
             try {
                 const url = new URL(this.searchProviderUrl)
-                const resultLimit = Number.isFinite(this.searchResultLimit) ? Math.max(1, this.searchResultLimit) : 5
+                const resultLimit = this.getNormalizedSearchResultLimit()
 
                 url.searchParams.set('q', query)
                 url.searchParams.set('format', 'jsonv2')
@@ -305,20 +326,7 @@ export default function mapPickerFormComponent(config) {
                 const results = await response.json()
                 const mappedResults = Array.isArray(results)
                     ? results
-                        .map((result) => {
-                            const lat = Number(result.lat)
-                            const lng = Number(result.lon)
-
-                            if (Number.isNaN(lat) || Number.isNaN(lng)) {
-                                return null
-                            }
-
-                            return {
-                                lat,
-                                lng,
-                                label: typeof result.display_name === 'string' ? result.display_name : query,
-                            }
-                        })
+                        .map((result) => this.mapSearchResult(result, query))
                         .filter(Boolean)
                     : []
 
@@ -336,6 +344,25 @@ export default function mapPickerFormComponent(config) {
                 this.searchError = error instanceof Error ? error.message : 'Unable to complete the search.'
             } finally {
                 this.isSearching = false
+            }
+        },
+
+        getNormalizedSearchResultLimit() {
+            return Number.isFinite(this.searchResultLimit) ? Math.max(1, this.searchResultLimit) : 5
+        },
+
+        mapSearchResult(result, fallbackLabel) {
+            const lat = Number(result.lat)
+            const lng = Number(result.lon)
+
+            if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                return null
+            }
+
+            return {
+                lat,
+                lng,
+                label: typeof result.display_name === 'string' ? result.display_name : fallbackLabel,
             }
         },
 

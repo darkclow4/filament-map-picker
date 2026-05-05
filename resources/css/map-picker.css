@@ -330,13 +330,14 @@
 }
 
 :where(.dark, .dark *) .fi-map-picker-map-shell .leaflet-draw-actions a {
-    color: rgb(241, 245, 249);
-    background: rgba(15, 23, 42, 0.96);
+    color: rgb(15, 23, 42);
+    background: rgba(255, 255, 255, 0.96);
+    border-left-color: rgba(203, 213, 225, 0.9);
 }
 
 :where(.dark, .dark *) .fi-map-picker-map-shell .leaflet-draw-toolbar a {
-    background-color: rgba(15, 23, 42, 0.94);
-    border-color: rgba(71, 85, 105, 0.5);
+    background-color: rgba(255, 255, 255, 0.96);
+    border-color: rgba(203, 213, 225, 0.9);
 }
 
 .fi-map-picker-search-result-index {
