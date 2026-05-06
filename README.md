@@ -429,6 +429,23 @@ Allows the field to keep multiple drawn shapes inside the GeoJSON `FeatureCollec
 ->multipleShapes()
 ```
 
+### `->showAreaMeasurement(bool $condition = true)`
+
+Shows area labels directly inside the map for each drawn shape when draw mode is enabled.
+
+```php
+->showAreaMeasurement()
+```
+
+### `->areaMeasurementUnit('m2'|'ha')`
+
+Controls the unit used for the displayed area measurement.
+
+```php
+->areaMeasurementUnit('m2')
+->areaMeasurementUnit('ha')
+```
+
 ## Asset Loading
 
 - Leaflet CSS is bundled and served locally by the package

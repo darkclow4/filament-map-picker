@@ -12,14 +12,17 @@ export default function mapPickerFormComponent(config) {
         drawCreatedHandler: null,
         drawDeletedHandler: null,
         drawEditedHandler: null,
+        drawMeasurementLabels: [],
         drawTools: Array.isArray(config.drawTools) ? config.drawTools : [],
         drawnItems: null,
         emptyGeoJson: config.emptyGeoJson ?? { type: 'FeatureCollection', features: [] },
         height: config.height ?? '400px',
+        areaMeasurementUnit: config.areaMeasurementUnit ?? 'm2',
         isDisabled: !!config.isDisabled,
         isDrawable: !!config.isDrawable,
         isSearchable: !!config.isSearchable,
         isSearching: false,
+        shouldShowAreaMeasurement: !!config.shouldShowAreaMeasurement,
         shouldFitDrawBounds: config.shouldFitDrawBounds !== false,
         layer: null,
         layersControl: null,
@@ -437,6 +440,8 @@ export default function mapPickerFormComponent(config) {
 
                 this.drawnItems.addLayer(event.layer)
 
+                this.refreshAreaMeasurementLabels()
+
                 if (this.shouldFitDrawBounds) {
                     this.fitToDrawnItems()
                 }
@@ -445,6 +450,8 @@ export default function mapPickerFormComponent(config) {
             }
 
             this.drawEditedHandler = () => {
+                this.refreshAreaMeasurementLabels()
+
                 if (this.shouldFitDrawBounds) {
                     this.fitToDrawnItems(false)
                 }
@@ -453,6 +460,7 @@ export default function mapPickerFormComponent(config) {
             }
 
             this.drawDeletedHandler = () => {
+                this.refreshAreaMeasurementLabels()
                 this.syncState()
             }
 
@@ -476,6 +484,7 @@ export default function mapPickerFormComponent(config) {
             }
 
             this.drawnItems.clearLayers()
+            this.clearAreaMeasurementLabels()
 
             if (!state?.features?.length) {
                 return
@@ -496,6 +505,8 @@ export default function mapPickerFormComponent(config) {
             geoJsonLayer.eachLayer((layer) => {
                 this.drawnItems.addLayer(layer)
             })
+
+            this.refreshAreaMeasurementLabels()
         },
 
         fitToDrawnItems(animate = true) {
@@ -546,6 +557,101 @@ export default function mapPickerFormComponent(config) {
                 type: 'FeatureCollection',
                 features,
             }
+        },
+
+        refreshAreaMeasurementLabels() {
+            this.clearAreaMeasurementLabels()
+
+            if (!this.shouldShowAreaMeasurement || !this.drawnItems || !this.map) {
+                return
+            }
+
+            this.drawnItems.eachLayer((layer) => {
+                const measurement = this.calculateLayerArea(layer)
+
+                if (measurement <= 0) {
+                    return
+                }
+
+                const center = this.getLayerMeasurementCenter(layer)
+
+                if (!center) {
+                    return
+                }
+
+                const marker = window.L.marker(center, {
+                    interactive: false,
+                    keyboard: false,
+                    zIndexOffset: 1000,
+                    icon: window.L.divIcon({
+                        className: '',
+                        html: `<span class="fi-map-picker-area-label">${this.formatAreaMeasurement(measurement)}</span>`,
+                    }),
+                }).addTo(this.map)
+
+                this.drawMeasurementLabels.push(marker)
+            })
+        },
+
+        clearAreaMeasurementLabels() {
+            this.drawMeasurementLabels.forEach((label) => {
+                this.map?.removeLayer(label)
+            })
+
+            this.drawMeasurementLabels = []
+        },
+
+        calculateLayerArea(layer) {
+            if (layer instanceof window.L.Circle) {
+                const radius = Number(layer.getRadius())
+
+                return Math.PI * radius * radius
+            }
+
+            if (typeof window.L.GeometryUtil?.geodesicArea === 'function' && typeof layer.getLatLngs === 'function') {
+                const latLngs = layer.getLatLngs()
+                const ring = Array.isArray(latLngs) ? latLngs[0] ?? [] : []
+
+                if (ring.length >= 3) {
+                    return Math.abs(window.L.GeometryUtil.geodesicArea(ring))
+                }
+            }
+
+            return 0
+        },
+
+        getLayerMeasurementCenter(layer) {
+            if (typeof layer.getBounds === 'function') {
+                const bounds = layer.getBounds()
+
+                if (bounds?.isValid?.()) {
+                    return bounds.getCenter()
+                }
+            }
+
+            if (typeof layer.getLatLng === 'function') {
+                return layer.getLatLng()
+            }
+
+            return null
+        },
+
+        formatAreaMeasurement(area) {
+            if (area <= 0) {
+                return this.areaMeasurementUnit === 'ha' ? '0 ha' : '0 m2'
+            }
+
+            if (this.areaMeasurementUnit === 'ha') {
+                return `${(area / 10000).toLocaleString(undefined, {
+                    maximumFractionDigits: 4,
+                    minimumFractionDigits: 0,
+                })}&nbsp;ha`
+            }
+
+            return `${area.toLocaleString(undefined, {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 0,
+            })}&nbsp;m²`
         },
 
         applyTileLayer(tileKey) {
@@ -749,6 +855,7 @@ export default function mapPickerFormComponent(config) {
             this.marker = null
             this.moveEndHandler = null
             this.moveHandler = null
+            this.drawMeasurementLabels = []
             this.searchResults = []
             this.tileLayers = {}
         },

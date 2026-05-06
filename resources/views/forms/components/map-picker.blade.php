@@ -29,6 +29,8 @@
             emptyGeoJson: @js($getEmptyGeoJson()),
             shouldFitDrawBounds: @js($shouldFitDrawBounds()),
             allowsMultipleShapes: @js($allowsMultipleShapes()),
+            shouldShowAreaMeasurement: @js($shouldShowAreaMeasurement()),
+            areaMeasurementUnit: @js($getAreaMeasurementUnit()),
             leafletScriptUrl: @js(\Filament\Support\Facades\FilamentAsset::getScriptSrc('leaflet', 'darkclow4/filament-map-picker')),
             leafletDrawScriptUrl: @js(\Filament\Support\Facades\FilamentAsset::getScriptSrc('leaflet-draw', 'darkclow4/filament-map-picker')),
         })" style="--fi-map-picker-marker-color: {{ $getMarkerColor() }};"

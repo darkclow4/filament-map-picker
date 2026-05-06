@@ -41,6 +41,10 @@ class MapPicker extends Field
 
     protected bool|Closure $allowsMultipleShapes = false;
 
+    protected bool|Closure $shouldShowAreaMeasurement = false;
+
+    protected string|Closure|null $areaMeasurementUnit = null;
+
     protected bool|Closure $isDrawable = false;
 
     /**
@@ -64,6 +68,8 @@ class MapPicker extends Field
         $this->drawTools(['polygon', 'rectangle', 'circle']);
         $this->fitDrawBounds();
         $this->multipleShapes(false);
+        $this->showAreaMeasurement(false);
+        $this->areaMeasurementUnit('m2');
 
         $this->default(fn (MapPicker $component): array => $component->getInitialState());
     }
@@ -176,6 +182,20 @@ class MapPicker extends Field
     public function drawTools(array|Closure|null $tools): static
     {
         $this->drawTools = $tools;
+
+        return $this;
+    }
+
+    public function showAreaMeasurement(bool|Closure $condition = true): static
+    {
+        $this->shouldShowAreaMeasurement = $condition;
+
+        return $this;
+    }
+
+    public function areaMeasurementUnit(string|Closure|null $unit): static
+    {
+        $this->areaMeasurementUnit = $unit;
 
         return $this;
     }
@@ -301,6 +321,18 @@ class MapPicker extends Field
     public function isDrawable(): bool
     {
         return (bool) $this->evaluate($this->isDrawable);
+    }
+
+    public function shouldShowAreaMeasurement(): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowAreaMeasurement);
+    }
+
+    public function getAreaMeasurementUnit(): string
+    {
+        $unit = $this->evaluate($this->areaMeasurementUnit) ?? 'm2';
+
+        return in_array($unit, ['m2', 'ha'], true) ? $unit : 'm2';
     }
 
     /**
