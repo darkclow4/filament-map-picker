@@ -27,43 +27,17 @@ The package is designed to stay flexible. It does not force how you persist `lat
 
 ## Installation
 
-If you are developing the package locally inside a Laravel project, add a path repository entry to the root `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "path",
-            "url": "packages/filament-map-picker"
-        }
-    ]
-}
-```
-
-Then require the package:
+Install the package with Composer:
 
 ```bash
-composer require darkclow4/filament-map-picker:@dev
+composer require darkclow4/filament-map-picker
 ```
 
-Publish Filament assets after installation or after asset changes:
+Then publish Filament assets:
 
 ```bash
 php artisan filament:assets
 ```
-
-## Runtime vs Development Dependencies
-
-The installed package does not need `node_modules` at runtime.
-
-- Laravel and Filament only use committed files inside `dist/`
-- `node_modules` is only needed when maintaining the package locally
-- Consumers of the package do not need Node.js just to use the field
-
-In short:
-
-- runtime usage: no `node_modules` required
-- package maintenance: `node_modules` required only when rebuilding assets or updating bundled Leaflet assets
 
 ## Package Registration
 
@@ -239,6 +213,8 @@ Tile behavior:
 - if `->tile()` is not called, `osm` is selected by default
 - if the selected tile key is invalid, the field falls back to `osm`
 - if more than one base layer exists, Leaflet's built-in layers control is shown on the map
+- by default the built-in `osm` tile is always included
+- use `->showDefaultTile(false)` if you want to hide the built-in `osm` tile and only expose your custom tiles
 
 ## Searchable Mode
 
@@ -319,6 +295,14 @@ Expected tile format:
         ],
     ],
 ]
+```
+
+### `->showDefaultTile(bool $condition = true)`
+
+Controls whether the built-in `osm` tile should be included in the available tile list.
+
+```php
+->showDefaultTile(false)
 ```
 
 ### `->mode('drag|click')`
@@ -444,66 +428,6 @@ Controls the unit used for the displayed area measurement.
 ```php
 ->areaMeasurementUnit('m2')
 ->areaMeasurementUnit('ha')
-```
-
-## Asset Loading
-
-- Leaflet CSS is bundled and served locally by the package
-- Leaflet JS is bundled and served locally by the package
-- Leaflet Draw CSS/JS is bundled and served locally by the package
-- the Alpine component is lazy-loaded only when the field is rendered
-
-After updating package assets during development, republish them with:
-
-```bash
-php artisan filament:assets
-```
-
-## Building Assets
-
-This package includes package-local Node.js tooling for rebuilding minified assets.
-
-Install development dependencies inside the package directory:
-
-```bash
-cd packages/filament-map-picker
-npm install
-```
-
-Build minified package assets:
-
-```bash
-npm run build
-```
-
-This regenerates:
-
-- `dist/components/map-picker.js`
-- `dist/map-picker.css`
-
-## Updating Bundled Leaflet Assets
-
-Leaflet and Leaflet Draw are bundled locally so the package does not rely on a CDN. When you want to update them:
-
-```bash
-cd packages/filament-map-picker
-npm install leaflet@latest leaflet-draw@latest --save-dev
-npm run update:leaflet
-npm run build
-```
-
-This workflow:
-
-- updates the package-local Leaflet dependencies
-- copies Leaflet into `dist/leaflet/`
-- copies Leaflet Draw into `dist/leaflet-draw/`
-- embeds image assets into the generated CSS where needed
-- rebuilds the package JS and CSS
-
-Then republish assets in the Laravel app:
-
-```bash
-php artisan filament:assets
 ```
 
 ## Notes

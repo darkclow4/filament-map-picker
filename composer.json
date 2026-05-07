@@ -1,24 +1,29 @@
 {
     "name": "darkclow4/filament-map-picker",
-    "description": "Map picker field for Filament 5 using Leaflet.",
+    "description": "Leaflet map picker and GeoJSON draw field for Filament 5.",
     "type": "library",
     "license": "MIT",
     "keywords": [
         "laravel",
         "filament",
         "filament-plugin",
+        "filament-form-field",
+        "geojson",
         "leaflet",
+        "leaflet-draw",
         "map-picker",
         "maps"
     ],
     "homepage": "https://github.com/darkclow4/filament-map-picker",
     "support": {
+        "docs": "https://github.com/darkclow4/filament-map-picker#readme",
         "issues": "https://github.com/darkclow4/filament-map-picker/issues",
         "source": "https://github.com/darkclow4/filament-map-picker"
     },
     "authors": [
         {
-            "name": "Darkclow4"
+            "name": "Darkclow4",
+            "role": "Developer"
         }
     ],
     "suggest": {

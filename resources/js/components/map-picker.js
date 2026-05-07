@@ -18,6 +18,7 @@ export default function mapPickerFormComponent(config) {
         emptyGeoJson: config.emptyGeoJson ?? { type: 'FeatureCollection', features: [] },
         height: config.height ?? '400px',
         areaMeasurementUnit: config.areaMeasurementUnit ?? 'm2',
+        hasDefaultTile: config.hasDefaultTile !== false,
         isDisabled: !!config.isDisabled,
         isDrawable: !!config.isDrawable,
         isSearchable: !!config.isSearchable,
@@ -186,7 +187,7 @@ export default function mapPickerFormComponent(config) {
         },
 
         initializeTiles() {
-            if (!this.tiles.osm) {
+            if (this.hasDefaultTile && !this.tiles.osm) {
                 this.tiles.osm = {
                     label: 'OpenStreetMap',
                     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -200,7 +201,7 @@ export default function mapPickerFormComponent(config) {
             this.tileKeys = Object.keys(this.tiles)
 
             if (!this.tiles[this.activeTile]) {
-                this.activeTile = 'osm'
+                this.activeTile = this.tileKeys[0] ?? 'osm'
             }
         },
 
@@ -689,8 +690,9 @@ export default function mapPickerFormComponent(config) {
         },
 
         applyTileLayer(tileKey) {
-            const resolvedTileKey = this.tiles[tileKey] ? tileKey : 'osm'
-            const tile = this.tiles[resolvedTileKey] ?? this.tiles.osm
+            const fallbackTileKey = this.tiles.osm ? 'osm' : (this.tileKeys[0] ?? null)
+            const resolvedTileKey = this.tiles[tileKey] ? tileKey : fallbackTileKey
+            const tile = resolvedTileKey ? this.tiles[resolvedTileKey] ?? null : null
 
             if (!tile) {
                 return

@@ -22,6 +22,7 @@
             height: @js($getHeight()),
             isDisabled: @js($isDisabled()),
             isSearchable: @js($isSearchable()),
+            hasDefaultTile: @js($hasDefaultTile()),
             searchProviderUrl: @js($getSearchProviderUrl()),
             searchResultLimit: @js($getSearchResultLimit()),
             isDrawable: @js($isDrawable()),

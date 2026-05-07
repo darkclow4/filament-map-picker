@@ -31,6 +31,8 @@ class MapPicker extends Field
 
     protected bool|Closure $isSearchable = false;
 
+    protected bool|Closure $hasDefaultTile = true;
+
     protected string|Closure|null $searchPlaceholder = null;
 
     protected string|Closure|null $searchProviderUrl = null;
@@ -134,6 +136,13 @@ class MapPicker extends Field
         return $this;
     }
 
+    public function showDefaultTile(bool|Closure $condition = true): static
+    {
+        $this->hasDefaultTile = $condition;
+
+        return $this;
+    }
+
     public function searchPlaceholder(string|Closure|null $placeholder): static
     {
         $this->searchPlaceholder = $placeholder;
@@ -228,7 +237,13 @@ class MapPicker extends Field
      */
     public function getResolvedTiles(): array
     {
-        return array_replace($this->getDefaultTiles(), $this->normalizeTiles($this->getTiles()));
+        $tiles = $this->normalizeTiles($this->getTiles());
+
+        if ($this->hasDefaultTile()) {
+            return array_replace($this->getDefaultTiles(), $tiles);
+        }
+
+        return $tiles;
     }
 
     public function getMode(): string
@@ -281,6 +296,11 @@ class MapPicker extends Field
     public function isSearchable(): bool
     {
         return (bool) $this->evaluate($this->isSearchable);
+    }
+
+    public function hasDefaultTile(): bool
+    {
+        return (bool) $this->evaluate($this->hasDefaultTile);
     }
 
     public function getSearchPlaceholder(): string
@@ -381,7 +401,7 @@ class MapPicker extends Field
                 'url' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 'options' => [
                     'maxZoom' => 19,
-                    'attribution' => '&copy; OpenStreetMap contributors',
+                    'attribution' => '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 ],
             ],
         ];
