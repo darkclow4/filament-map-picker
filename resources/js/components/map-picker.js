@@ -439,6 +439,7 @@ export default function mapPickerFormComponent(config) {
                 }
 
                 this.drawnItems.addLayer(event.layer)
+                this.updateCoordinatesFromLayer(event.layer)
 
                 this.refreshAreaMeasurementLabels()
 
@@ -450,6 +451,7 @@ export default function mapPickerFormComponent(config) {
             }
 
             this.drawEditedHandler = () => {
+                this.updateCoordinatesFromDrawnItems()
                 this.refreshAreaMeasurementLabels()
 
                 if (this.shouldFitDrawBounds) {
@@ -634,6 +636,38 @@ export default function mapPickerFormComponent(config) {
             }
 
             return null
+        },
+
+        updateCoordinatesFromLayer(layer) {
+            const center = this.getLayerMeasurementCenter(layer)
+
+            if (!center) {
+                return
+            }
+
+            this.setCoordinates(center.lat, center.lng, {
+                pan: !this.shouldFitDrawBounds,
+                sync: false,
+            })
+        },
+
+        updateCoordinatesFromDrawnItems() {
+            if (!this.drawnItems) {
+                return
+            }
+
+            const bounds = this.drawnItems.getBounds()
+
+            if (!bounds?.isValid?.()) {
+                return
+            }
+
+            const center = bounds.getCenter()
+
+            this.setCoordinates(center.lat, center.lng, {
+                pan: !this.shouldFitDrawBounds,
+                sync: false,
+            })
         },
 
         formatAreaMeasurement(area) {
